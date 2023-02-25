@@ -1,34 +1,18 @@
 package com.nick.model.item;
 
 public class Person {
-    public String customerId;
-    public String sex;
+    public String firstName;
+    public String lastName;
     public int age;
-    public int birthMonth;
-    public int birthDay;
-    public int openDays;
-    public int totalPoints;
-    public String province;
-    public String membership;
+    public String Phone;
 
-    public Person(String customerId,
-            String sex,
+    public Person(String firstName,
+            String lastName,
             int age,
-            int birthMonth,
-            int birthDay,
-            int openDays,
-            int totalPoints,
-            String province,
-            String membership) {
-        this.customerId = customerId;
-        this.sex = sex;
+            String Phone) {
+        this.firstName = firstName;
+        this.lastName = lastName;
         this.age = age;
-        this.birthMonth = birthMonth;
-        this.birthDay = birthDay;
-        this.openDays = openDays;
-        this.totalPoints = totalPoints;
-        this.province = province;
-        this.membership = membership;
+        this.Phone = Phone;
     }
-
 }
