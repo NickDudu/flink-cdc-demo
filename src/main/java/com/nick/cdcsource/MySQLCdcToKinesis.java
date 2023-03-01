@@ -6,6 +6,7 @@ import com.ververica.cdc.connectors.mysql.table.StartupOptions;
 import com.ververica.cdc.debezium.JsonDebeziumDeserializationSchema;
 import org.apache.flink.api.common.eventtime.WatermarkStrategy;
 import org.apache.flink.api.common.serialization.SimpleStringSchema;
+import org.apache.flink.streaming.api.CheckpointingMode;
 import org.apache.flink.streaming.api.datastream.AsyncDataStream;
 import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.api.datastream.DataStreamSource;
@@ -31,6 +32,11 @@ public class MySQLCdcToKinesis {
         // set up the streaming execution environment
         final StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
 //        env.enableCheckpointing(3000);
+
+        env.enableCheckpointing(5000);
+        env.getCheckpointConfig().setCheckpointingMode(CheckpointingMode.EXACTLY_ONCE);
+        env.getCheckpointConfig().setCheckpointTimeout(10000);
+
         DataStreamSource<String> orderSource = env.fromSource(
                 createMySqlCDCSource(), WatermarkStrategy.noWatermarks(), "Person Source");
 
@@ -38,7 +44,7 @@ public class MySQLCdcToKinesis {
                 AsyncDataStream.unorderedWait(orderSource, new AsyncCustomerOrderRequest(log), 1000, TimeUnit.MILLISECONDS, 100);
 
 
-        resultStream.print("asyncStream");
+        resultStream.print("asyncStream===============================>");
 
         env.execute("Flink Streaming Java API From MySQL CDC to Screen.");
     }

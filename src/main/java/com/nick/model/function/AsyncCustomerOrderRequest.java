@@ -4,6 +4,10 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.nick.model.item.Person;
 //import model.item.CustomerOrder;
 //import model.item.Order;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.streaming.api.functions.async.ResultFuture;
 import org.apache.flink.streaming.api.functions.async.RichAsyncFunction;
@@ -63,12 +67,13 @@ public class AsyncCustomerOrderRequest extends RichAsyncFunction<String, String>
             int end = cdcString.indexOf("}")+ 1;
             String personString = cdcString.substring(start, end);
             log.info("start: " + start + ", end: " + end + ", personString: " + personString);
-
+            // 将Json字符串反序列化为Java对象
             Person person = mapper.readValue(personString, Person.class);
+            System.out.println("====================" + mapper.writeValueAsString(person));
 
             log.info("Creating statement to query MySQL.");
             Statement statement = connection.createStatement();
-            ResultSet resultSet = statement.executeQuery(String.format("select firstName, lastName, age, phone from Person where firstName = \"%s\"", person.firstName));
+            ResultSet resultSet = statement.executeQuery(String.format("select * from Person where firstName = \"%s\"", person.firstName));
             log.info("Successfully executed the query, result is: " + resultSet);
 
             if (resultSet != null && resultSet.next()) {
@@ -76,10 +81,14 @@ public class AsyncCustomerOrderRequest extends RichAsyncFunction<String, String>
                         resultSet.getString("firstName"),
                         resultSet.getString("firstName"),
                         resultSet.getInt("age"),
-                        resultSet.getString("phone")
+                        resultSet.getString("phone"),
+                        resultSet.getInt("id")
                 );
-                log.info("Person is: " + person);
-                resultFuture.complete(Collections.singleton(mapper.writeValueAsString(person)));
+                log.info("Person is: " + person1);
+                // 将Java对象序列化为Json字符串
+                resultFuture.complete(Collections.singleton(mapper.writeValueAsString(person1)));
+                //test for printing
+                //log.info("=>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>" + mapper.writeValueAsString(person1));
             } else {
                 log.info("No resultSet is returned, hence returning empty list.");
                 resultFuture.complete(Collections.EMPTY_LIST);
