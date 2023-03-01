@@ -6,6 +6,9 @@ import com.ververica.cdc.connectors.mysql.table.StartupOptions;
 import com.ververica.cdc.debezium.JsonDebeziumDeserializationSchema;
 import org.apache.flink.api.common.eventtime.WatermarkStrategy;
 import org.apache.flink.api.common.serialization.SimpleStringSchema;
+import org.apache.flink.configuration.ConfigConstants;
+import org.apache.flink.configuration.WebOptions;
+import org.apache.flink.streaming.api.CheckpointingMode;
 import org.apache.flink.streaming.api.datastream.AsyncDataStream;
 import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.api.datastream.DataStreamSource;
@@ -21,26 +24,38 @@ import java.util.Properties;
 import java.util.concurrent.TimeUnit;
 
 
-public class MySQLCdcToKinesis {
-    private static final Logger log = LoggerFactory.getLogger(MySQLCdcToKinesis.class);
+public class MySQLCdcSync{
+//    private static final Logger log = LoggerFactory.getLogger(MySQLCdcSync.class);
 
     public static void main(String[] args) throws Exception {
 
-        Configuration configuration = new Configuration();
-        configuration.setInteger(RestOptions.PORT,8848);
+//        Configuration configuration = new Configuration();
+//        configuration.setInteger(RestOptions.PORT,8848);
+//
+//        configuration.setString(RestOptions.BIND_PORT,"8081");
+//        configuration.setString(WebOptions.LOG_PATH,"tmp/log/job.log");
+//        configuration.setString(ConfigConstants.TASK_MANAGER_LOG_PATH_KEY,"tmp/log/job.log");
         // set up the streaming execution environment
         final StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
-//        env.enableCheckpointing(3000);
-        DataStreamSource<String> orderSource = env.fromSource(
-                createMySqlCDCSource(), WatermarkStrategy.noWatermarks(), "Person Source");
 
-        DataStream<String> resultStream =
-                AsyncDataStream.unorderedWait(orderSource, new AsyncCustomerOrderRequest(log), 1000, TimeUnit.MILLISECONDS, 100);
+//        StreamExecutionEnvironment env = StreamExecutionEnvironment.createLocalEnvironmentWithWebUI(configuration);
 
 
-        resultStream.print("asyncStream");
+        env.enableCheckpointing(5000);
+        env.getCheckpointConfig().setCheckpointingMode(CheckpointingMode.EXACTLY_ONCE);
 
-        env.execute("Flink Streaming Java API From MySQL CDC to Screen.");
+        env.getCheckpointConfig().setCheckpointTimeout(10000);
+
+
+
+
+    env.fromSource(createMySqlCDCSource(), WatermarkStrategy.noWatermarks(), "MySQL Source")
+                // set 4 parallel source tasks
+                .setParallelism(4)
+                .print("最终数据================》").setParallelism(1); // use parallelism 1 for sink to keep message ordering
+//        log.info("Start to prepare JDBC connection.");
+        env.execute("Print MySQL Snapshot + Binlog");
+
     }
 
     private static MySqlSource<String> createMySqlCDCSource() {
